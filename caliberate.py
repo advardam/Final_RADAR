@@ -2,16 +2,13 @@
 
 import time
 import statistics
-# We need to import the pin number for the buzzer from the hardware layer
-from hw_layer import measure_distance, buzzer_beep, BUZZER_PIN
+# MODIFIED: Removed the unused BUZZER_PIN import
+from hw_layer import measure_distance, buzzer_beep
 
 # --- CONFIGURATION ---
-# The number of readings to take for each object to get a good average.
-# 50 is a good number, but you can increase it for more accuracy.
 READINGS_PER_OBJECT = 50
 
 # --- DATA STORAGE ---
-# This dictionary will hold all the standard deviation readings for each shape type.
 calibration_data = {
     "flat": [],
     "slightly_curved": [],
@@ -21,13 +18,6 @@ calibration_data = {
 def run_calibration_test(shape_name, instructions):
     """
     A guided function to take multiple sensor readings for a specific shape.
-    
-    Args:
-        shape_name (str): The key to use for storing data (e.g., "flat").
-        instructions (str): The message to show the user for this test.
-    
-    Returns:
-        list: A list of all the standard deviation (sigma) values recorded.
     """
     print("\n" + "="*50)
     print(f"  CALIBRATION STEP: Testing a '{shape_name.upper()}' Object")
@@ -40,16 +30,16 @@ def run_calibration_test(shape_name, instructions):
     
     sigmas = []
     for i in range(READINGS_PER_OBJECT):
-        # MODIFIED: Taking only 2 samples per reading to increase sensitivity to variation.
         avg_dist, sigma = measure_distance(samples=2)
         
-        if avg_dist > 0: # Only record valid readings
+        if avg_dist > 0:
             sigmas.append(sigma)
             
         print(f"  Reading {i+1}/{READINGS_PER_OBJECT} -> Distance: {avg_dist:.2f} cm, Sigma: {sigma:.2f}")
-        time.sleep(0.1) # A small delay between readings
+        time.sleep(0.1)
         
-    buzzer_beep(BUZZER_PIN, 0.2) # Beep to signal completion
+    # MODIFIED: Corrected the function call to match the new definition
+    buzzer_beep(0.2) # Beep to signal completion
     print("\n  ...Test complete for this object.")
     return sigmas
 
@@ -62,7 +52,6 @@ def analyze_results(data):
     print("  CALIBRATION ANALYSIS & CONCLUSION")
     print("#"*60)
     
-    # --- Calculate statistics for each shape ---
     if not data["flat"]:
         print("\nERROR: No data was collected for the 'flat' object. Cannot generate conclusion.")
         return
@@ -72,15 +61,12 @@ def analyze_results(data):
 
     if not data["slightly_curved"]:
         print("\nNOTE: No data for 'slightly curved'. The conclusion will be less precise.")
-        # Create a reasonable guess if no data exists
         threshold1 = round(max_flat_sigma * 2.5, 2)
         threshold2 = round(threshold1 * 3, 2)
     else:
         min_slight_sigma = min(data["slightly_curved"])
         max_slight_sigma = max(data["slightly_curved"])
         print(f"- SLIGHTLY CURVED object readings produced sigmas from {min_slight_sigma:.2f} to {max_slight_sigma:.2f}.")
-        
-        # Suggest a threshold halfway between the flat and slightly curved objects
         threshold1 = round((max_flat_sigma + min_slight_sigma) / 2, 2)
         
         if not data["curved_irregular"]:
@@ -89,10 +75,8 @@ def analyze_results(data):
         else:
             min_irregular_sigma = min(data["curved_irregular"])
             print(f"- CURVED/IRREGULAR object readings produced sigmas from {min_irregular_sigma:.2f} to {max(data['curved_irregular']):.2f}.")
-            # Suggest a threshold halfway between slightly curved and irregular
             threshold2 = round((max_slight_sigma + min_irregular_sigma) / 2, 2)
 
-    # --- Generate the final conclusion ---
     print("\n" + "*"*60)
     print("  SUGGESTED CALIBRATION CODE")
     print("*"*60)
@@ -114,7 +98,6 @@ if __name__ == "__main__":
     print("\nThis script will guide you through testing different objects")
     print("to generate the ideal calibration values for your sensor.")
     
-    # --- Run the tests ---
     calibration_data["flat"] = run_calibration_test(
         "flat",
         "Place a hard, flat object (like a large book or a piece of wood) about 20-30 cm away from the sensor."
@@ -130,5 +113,4 @@ if __name__ == "__main__":
         "Place a very curved or irregular object (like a ball, a crumpled piece of paper, or your hand) in front of the sensor."
     )
     
-    # --- Analyze and Conclude ---
     analyze_results(calibration_data)
